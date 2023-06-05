@@ -8,17 +8,49 @@
 #include "gpt.h"
 #include "fat32.h"
 
+
+static void
+usage(const char *argv0)
+{
+  fprintf(stderr, "Usage %s ...\n", argv0);
+  fprintf(stderr, "  -o   DISKIMAGE     Path to output image\n");
+  fprintf(stderr, "  -k   KERNEL        Path to kernel\n");
+  fprintf(stderr, "  -s   SIZE          EFI partition size in MB (Default 1024)\n");
+}
+
+
 int
 main(int argc, char **argv)
 {
-  if(argc < 1) {
-    fprintf(stderr, "Usage %s <DISK.IMG> [<KERNEL>]\n", argv[0]);
+  int opt;
+  const char *disk_image_path = NULL;
+  const char *kernel_path = NULL;
+  uint32_t image_size_in_sectors = 1024 * 1024 * 1024 / 512;
+
+  while ((opt = getopt(argc, argv, "o:k:s:h")) != -1) {
+    switch (opt) {
+    case 'o':
+      disk_image_path = optarg;
+      break;
+    case 'k':
+      kernel_path = optarg;
+      break;
+    case 's':
+      image_size_in_sectors = atoi(optarg) * 2048;
+      break;
+    case 'h':
+      usage(argv[0]);
+      exit(0);
+    }
+  }
+
+  if(disk_image_path == NULL) {
+    fprintf(stderr, "No image path (-o) given\n");
+    usage(argv[0]);
     exit(1);
   }
 
-  const uint32_t image_size_in_sectors = 1024 * 1024 * 1024 / 512;
 
-  const char *disk_image_path = argv[1];
   int image_fd = open(disk_image_path, O_CREAT | O_RDWR, 0644);
   if(image_fd == -1) {
     fprintf(stderr, "Unable to open image %s -- %m\n", disk_image_path);
@@ -38,8 +70,7 @@ main(int argc, char **argv)
   const uint32_t fat32_first_sector = 2048;
   const uint32_t fat32_last_sector  = image_size_in_sectors - 2048 - 1;
 
-  if(argc > 2) {
-    const char *kernel_path = argv[2];
+  if(kernel_path) {
     int kfd = open(kernel_path, O_RDONLY);
 
     if(kfd == -1) {
