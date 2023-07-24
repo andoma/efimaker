@@ -84,10 +84,17 @@ struct ptable {
 static void
 get_uuid(uint8_t *uuid)
 {
+  #ifdef __linux__
   if(getrandom(uuid, 16, 0) < 0) {
     perror("getrandom");
     exit(1);
   }
+  #elif __APPLE__
+  if(getentropy(uuid, 16) < 0) {
+    perror("getentropy");
+    exit(1);
+  }
+  #endif
 }
 
 static void
