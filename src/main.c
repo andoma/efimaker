@@ -16,6 +16,7 @@ usage(const char *argv0)
   fprintf(stderr, "  -o   DISKIMAGE     Path to output image\n");
   fprintf(stderr, "  -k   KERNEL        Path to kernel\n");
   fprintf(stderr, "  -s   SIZE          EFI partition size in MB (Default 1024)\n");
+  fprintf(stderr, "  -a   ARCHITECTURE  Architecture to build the image for (e.g. AA64, x64). Default X64. \n");
 }
 
 
@@ -25,9 +26,10 @@ main(int argc, char **argv)
   int opt;
   const char *disk_image_path = NULL;
   const char *kernel_path = NULL;
+  const char *arch = "x64";
   uint32_t image_size_in_sectors = 1024 * 1024 * 1024 / 512;
 
-  while ((opt = getopt(argc, argv, "o:k:s:h")) != -1) {
+  while ((opt = getopt(argc, argv, "o:k:s:a:h")) != -1) {
     switch (opt) {
     case 'o':
       disk_image_path = optarg;
@@ -37,6 +39,9 @@ main(int argc, char **argv)
       break;
     case 's':
       image_size_in_sectors = atoi(optarg) * 2048;
+      break;
+    case 'a':
+      arch = optarg;
       break;
     case 'h':
       usage(argv[0]);
@@ -93,7 +98,7 @@ main(int argc, char **argv)
 
     close(kfd);
 
-    fat32_make_efi(image_fd, fat32_first_sector,
+    fat32_make_efi(arch, image_fd, fat32_first_sector,
                    fat32_last_sector - fat32_first_sector + 1,
                    kmem, st.st_size);
   }

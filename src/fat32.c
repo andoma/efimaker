@@ -153,7 +153,7 @@ fat32_write_dir_entry_file(const image_t *img, uint32_t cluster, uint32_t index,
 
 
 void
-fat32_make_efi(uint32_t image_fd, uint32_t first_sector, uint32_t num_sectors,
+fat32_make_efi(const char *arch, uint32_t image_fd, uint32_t first_sector, uint32_t num_sectors,
                const void *kernel, size_t kernel_size)
 {
   if(kernel_size > 0xffffffff) {
@@ -239,7 +239,15 @@ fat32_make_efi(uint32_t image_fd, uint32_t first_sector, uint32_t num_sectors,
   // Write BOOT directory
   fat32_write_dir_entry_dir(&img, 4, 0, ".", 4);
   fat32_write_dir_entry_dir(&img, 4, 1, "..", 3);
-  fat32_write_dir_entry_file(&img, 4, 2, "BOOTX64", "EFI", 5, kernel_size);
+  char *boot_file_name = malloc(strlen("BOOT") + strlen(arch) + 1);
+  if (!boot_file_name) {
+    perror("");
+    exit(1);
+  }
+  strcpy(boot_file_name , "BOOT");
+  strcat(boot_file_name , arch);
+  fat32_write_dir_entry_file(&img, 4, 2, boot_file_name, "EFI", 5, kernel_size);
+  free(boot_file_name);
 
   if(pwrite(image_fd, kernel, kernel_size,get_cluster_offset(&img, 5)) != kernel_size) {
     perror("pwrite");
