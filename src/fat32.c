@@ -163,16 +163,27 @@ fat32_make_efi(uint32_t image_fd, uint32_t first_sector, uint32_t num_sectors,
   image_t img = {
     .fd = image_fd,
     .first_sector = first_sector,
-    .sectors_per_cluster = 16,
+    // TODO: The sectors_per_cluster should probably be computed automatically to ensure
+    // 1. There are at least 65525 clusters (to be considered fat32)
+    // 2. A cluster has at most 32768 byte
+    .sectors_per_cluster = 2,
   };
 
   const uint32_t volume_id = rand();
 
   const uint32_t num_clusters = num_sectors / img.sectors_per_cluster;
+  if (num_clusters < 65525) {
+    fprintf(stderr, "internal error: fat number of clusters < 65525 (%d)\n", num_clusters);
+    exit(1);
+  }
 
   num_sectors = num_clusters * img.sectors_per_cluster;
 
   const uint32_t bytes_per_cluster = img.sectors_per_cluster * 512;
+  if (bytes_per_cluster > 32768) {
+    fprintf(stderr, "internal error: fat cluster size > 32768 (%d)\n", bytes_per_cluster);
+    exit(1);
+  }
 
   img.sectors_per_fat = ((num_clusters + 127) / 128 + img.sectors_per_cluster - 1) & ~(img.sectors_per_cluster - 1);
 
